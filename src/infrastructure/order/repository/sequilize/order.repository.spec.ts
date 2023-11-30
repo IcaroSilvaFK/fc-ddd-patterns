@@ -23,7 +23,7 @@ describe("Order repository test", () => {
       sync: { force: true },
     });
 
-    await sequelize.addModels([
+    sequelize.addModels([
       CustomerModel,
       OrderModel,
       OrderItemModel,
@@ -81,4 +81,112 @@ describe("Order repository test", () => {
       ],
     });
   });
+
+  it("Should find order when it exists", async () => {
+    const customerRepository = new CustomerRepository();
+    const customer = new Customer("123", "Customer 1");
+    const address = new Address("Street 1", 1, "Zipcode 1", "City 1");
+    customer.changeAddress(address);
+    await customerRepository.create(customer);
+
+    const productRepository = new ProductRepository();
+    const product = new Product("123", "Product 1", 10);
+    await productRepository.create(product);
+
+    const orderItem = new OrderItem(
+      "1",
+      product.name,
+      product.price,
+      product.id,
+      2
+    );
+
+    const order = new Order("123", "123", [orderItem]);
+
+    const orderRepository = new OrderRepository();
+    await orderRepository.create(order);
+
+    const findedOrder = await orderRepository.find(order.id);
+
+
+    expect(findedOrder).toStrictEqual(order);
+  })
+
+  it("Should find all orders", async () => {
+    const customerRepository = new CustomerRepository();
+    const customer = new Customer("123", "Customer 1");
+    const address = new Address("Street 1", 1, "Zipcode 1", "City 1");
+    customer.changeAddress(address);
+    await customerRepository.create(customer);
+
+    const productRepository = new ProductRepository();
+    const product = new Product("123", "Product 1", 10);
+    await productRepository.create(product);
+
+    const orderItem = new OrderItem(
+      "1",
+      product.name,
+      product.price,
+      product.id,
+      2
+    );
+
+    const order = new Order("123", "123", [orderItem]);
+
+    const orderRepository = new OrderRepository();
+    await orderRepository.create(order);
+
+    const findedOrder = await orderRepository.findAll();
+
+
+    expect(findedOrder).toBeInstanceOf(Array);
+    expect(findedOrder.length).toBe(1);
+  })
+
+
+  it("Should update order when it exists and is valid", async () => {
+    const customerRepository = new CustomerRepository();
+    const customer = new Customer("123", "Customer 1");
+    const address = new Address("Street 1", 1, "Zipcode 1", "City 1");
+    customer.changeAddress(address);
+    await customerRepository.create(customer);
+
+    const productRepository = new ProductRepository();
+    const product = new Product("123", "Product 1", 10);
+    const secondProduct = new Product("123", "Product 2", 100);
+    await productRepository.create(product);
+
+    const orderItemOne = new OrderItem(
+      "1",
+      product.name,
+      product.price,
+      product.id,
+      2
+    );
+    const orderItemTwo = new OrderItem(
+      "2",
+      secondProduct.name,
+      secondProduct.price,
+      secondProduct.id,
+      2
+    );
+
+
+    const order = new Order("123", "123", [orderItemOne]);
+    const orderRepository = new OrderRepository();
+
+    await orderRepository.create(order);
+
+    const updatedOrder = new Order(order.id, order.customerId, [orderItemTwo, orderItemOne])
+
+    await orderRepository.update(updatedOrder)
+
+    const orderModel = await OrderModel.findOne({
+      where: { id: order.id },
+      include: ["items"],
+    })
+    expect(orderModel.items.length).toBe(2)
+    expect(orderModel.total).toBe(updatedOrder.total())
+
+  })
 });
